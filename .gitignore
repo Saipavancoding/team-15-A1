@@ -1,0 +1,23 @@
+# Node
+node_modules/
+
+# Env
+.env
+
+# Runtime
+*.log
+attempts.json
+
+# Editor
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Ignore AppData cruft if accidentally added
+AppData/
