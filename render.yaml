@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: quickquiz-backend
+    runtime: node
+    rootDir: FEDF-Backend-main
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_UNPOOLED
+        sync: false
+      - key: MONGO_URI
+        sync: false
