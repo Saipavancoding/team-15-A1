@@ -1,0 +1,11 @@
+[build]
+  command = "npm run build"
+  publish = "FEDF-QuickQuiz-main/FEDF-QuickQuiz-main"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[redirects]]
+  from = "/"
+  to = "/indexx.html"
+  status = 200
