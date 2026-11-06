@@ -37,14 +37,22 @@ app.use(express.json());
 const MONGO_URI = process.env.MONGO_URI || '';
 const DATABASE_URL = process.env.DATABASE_URL || '';
 const jwtSecretFile = path.join(__dirname, '.jwt-secret');
-let localJwtSecret;
-try {
-  localJwtSecret = fs.readFileSync(jwtSecretFile, 'utf8').trim();
-} catch (error) {
-  localJwtSecret = crypto.randomBytes(32).toString('hex');
-  fs.writeFileSync(jwtSecretFile, localJwtSecret, { encoding: 'utf8', mode: 0o600 });
+let localJwtSecret = process.env.JWT_SECRET || '';
+if (!localJwtSecret) {
+  try {
+    localJwtSecret = fs.readFileSync(jwtSecretFile, 'utf8').trim();
+  } catch (error) {
+    localJwtSecret = crypto.randomBytes(32).toString('hex');
+    if (process.env.NETLIFY !== 'true') {
+      try {
+        fs.writeFileSync(jwtSecretFile, localJwtSecret, { encoding: 'utf8', mode: 0o600 });
+      } catch (writeError) {
+        console.warn('Unable to persist JWT secret; using an in-memory secret:', writeError.message);
+      }
+    }
+  }
 }
-const JWT_SECRET = process.env.JWT_SECRET || localJwtSecret;
+const JWT_SECRET = localJwtSecret;
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 30,
