@@ -1182,9 +1182,15 @@ if (fs.existsSync(frontendPath)) {
   app.get('/', (req, res) => res.sendFile(path.join(frontendPath, 'indexx.html')));
 }
 
-Promise.all([databaseReady, neonReady]).then(() => {
-  app.listen(PORT, () => console.log('Server listening on port', PORT));
-}).catch(err => {
-  console.error('Application startup failed:', err.message);
-  process.exitCode = 1;
-});
+const startupReady = Promise.all([databaseReady, neonReady]);
+
+if (process.env.NETLIFY !== 'true') {
+  startupReady.then(() => {
+    app.listen(PORT, () => console.log('Server listening on port', PORT));
+  }).catch(err => {
+    console.error('Application startup failed:', err.message);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = { app, startupReady };

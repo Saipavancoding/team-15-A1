@@ -2,11 +2,12 @@
   "name": "quickquiz-neon-deployment",
   "private": true,
   "scripts": {
-    "build": "node --check FEDF-Backend-main/server.js",
+    "build": "node --check FEDF-Backend-main/server.js && node --check netlify/functions/api.js",
     "test": "node --check FEDF-Backend-main/server.js"
   },
   "dependencies": {
     "@neon/config": "^1.11.3",
-    "@neon/env": "^1.6.15"
+    "@neon/env": "^1.6.15",
+    "serverless-http": "^3.2.0"
   }
 }
