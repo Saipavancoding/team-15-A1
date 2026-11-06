@@ -132,6 +132,15 @@ const neonReady = neonPool
       INSERT INTO quickquiz_runtime (id, service)
       VALUES (1, 'quickquiz')
       ON CONFLICT (id) DO UPDATE SET last_started_at = NOW();
+      CREATE TABLE IF NOT EXISTS quickquiz_users (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'student',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS quickquiz_users_email_idx ON quickquiz_users (email);
     `).then(async () => {
       await loadNeonQuestions();
       console.log('Connected to Neon Postgres');
@@ -255,6 +264,24 @@ function signToken(user) {
     JWT_SECRET,
     { expiresIn: '8h' }
   );
+}
+
+const neonUserStore = () => Boolean(neonPool && !MONGO_URI);
+async function findNeonUserByEmail(email) {
+  if (!neonUserStore()) return null;
+  const result = await neonPool.query(
+    'SELECT id, name, email, password_hash AS "passwordHash", role, created_at AS "createdAt" FROM quickquiz_users WHERE email = $1',
+    [email]
+  );
+  return result.rows[0] || null;
+}
+async function findNeonUserById(id) {
+  if (!neonUserStore()) return null;
+  const result = await neonPool.query(
+    'SELECT id, name, email, password_hash AS "passwordHash", role, created_at AS "createdAt" FROM quickquiz_users WHERE id = $1',
+    [String(id)]
+  );
+  return result.rows[0] || null;
 }
 
 function authenticateUser(req, res, next) {
@@ -431,7 +458,9 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
       return res.status(400).json({ error: 'name, email and a password of at least 6 characters are required' });
     }
     const normalizedEmail = String(email).trim().toLowerCase();
-    const existing = useFileDb ? usersCache.find(u => u.email === normalizedEmail) : await User.findOne({ email: normalizedEmail });
+    const existing = useFileDb
+      ? (neonUserStore() ? await findNeonUserByEmail(normalizedEmail) : usersCache.find(u => u.email === normalizedEmail))
+      : await User.findOne({ email: normalizedEmail });
     if (existing) return res.status(409).json({ error: 'An account with that email already exists' });
     const user = {
       id: crypto.randomUUID(),
@@ -441,7 +470,12 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
       role: role === 'teacher' ? 'teacher' : 'student',
       createdAt: new Date().toISOString()
     };
-    if (useFileDb) {
+    if (neonUserStore()) {
+      await neonPool.query(
+        'INSERT INTO quickquiz_users (id, name, email, password_hash, role, created_at) VALUES ($1, $2, $3, $4, $5, $6)',
+        [user.id, user.name, user.email, user.passwordHash, user.role, user.createdAt]
+      );
+    } else if (useFileDb) {
       usersCache.push(user);
       persistFile('users.json', usersCache);
     } else {
@@ -467,7 +501,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
     if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
     const normalizedEmail = String(email || '').trim().toLowerCase();
     const user = useFileDb
-      ? usersCache.find(u => u.email === normalizedEmail)
+      ? (neonUserStore() ? await findNeonUserByEmail(normalizedEmail) : usersCache.find(u => u.email === normalizedEmail))
       : await User.findOne({ email: normalizedEmail });
     const passwordMatches = user ? await bcrypt.compare(String(password), user.passwordHash) : false;
     if (!user || !passwordMatches) {
@@ -483,7 +517,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
 app.get('/api/auth/me', authenticateUser, async (req, res) => {
   try {
     const user = useFileDb
-      ? usersCache.find(item => String(item.id) === String(req.auth.sub))
+      ? (neonUserStore() ? await findNeonUserById(req.auth.sub) : usersCache.find(item => String(item.id) === String(req.auth.sub)))
       : await User.findById(req.auth.sub).lean();
     if (!user) return res.status(404).json({ error: 'User account not found' });
     res.json({ user: { id: String(user.id || user._id), name: user.name, email: user.email, role: user.role } });
