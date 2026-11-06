@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quick Quiz</title>
+  <title>AI-Powered Intelligent Quiz and Assessment System</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -134,13 +134,18 @@
 </head>
 <body>
   <nav>
-    <div class="brand">Quick Quiz</div>
+    <div class="brand">AI-Powered Intelligent Quiz and Assessment System</div>
     <div class="links">
       <a href="indexx.html">Home</a>
       <a href="courses.html">Courses</a>
       <a href="quizz.html">Quizzes</a>
       <a href="projects.html">Projects</a>
       <a href="dashboard.html">Dashboard</a>
+      <a href="insights.html">Smart Insights</a>
+      <a href="saved.html">Saved Questions</a>
+      <a href="challenge.html">Daily Challenge</a>
+      <a href="review.html">Quiz Review</a>
+      <a href="leaderboard.html">Leaderboard</a>
     </div>
   </nav>
 
@@ -179,7 +184,7 @@
         <select id="courseSelect">
           <option>HTML</option>
           <option>CSS</option>
-          <option>JS</option>
+          <option>JavaScript</option>
           <option>MongoDB</option>
           <option>MySQL</option>
           <option>Java</option>
@@ -207,7 +212,7 @@
   </main>
 
   <footer>
-    © 2024 QuickQuiz. All rights reserved.
+    © 2024 AI-Powered Intelligent Quiz and Assessment System. All rights reserved.
   </footer>
 
 <script>
@@ -220,16 +225,52 @@ async function fetchQuestionsFromServer(course, count) {
   return res.json();
 }
 
-async function postAttemptToServer(userId, course, score, total) {
-  try {
-    await fetch(`${API_BASE}/api/attempts`, {
+async function postAttemptToServer(userId, course, questions, answers) {
+  const token = localStorage.getItem('authToken');
+  const res = await fetch(`${API_BASE}/api/attempts`, {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ userId, course, score, total })
-    });
-  } catch (e) {
-    console.warn('Attempt not saved to server', e);
+      headers: {'Content-Type':'application/json', Authorization: `Bearer ${token}`},
+      body: JSON.stringify({ course, questionIds: questions.map(q => q.questionId), answers })
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Attempt could not be saved');
   }
+
+  async function bookmarkCurrentQuestion() {
+    const q = currentQuiz[currentIndex];
+    const token = localStorage.getItem('authToken');
+    if (!q?.questionId || !token) {
+      alert('Sign in and use a course quiz to save questions.');
+      return;
+    }
+    const response = await fetch(`${API_BASE}/api/bookmarks`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', Authorization: `Bearer ${token}`},
+      body: JSON.stringify({questionId: q.questionId})
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok && response.status !== 409) throw new Error(body.error || 'Question could not be saved');
+    alert(response.status === 409 ? 'Question is already saved.' : 'Question saved.');
+  }
+  return res.json();
+}
+
+async function bookmarkCurrentQuestion() {
+  const q = currentQuiz[currentIndex];
+  const token = localStorage.getItem('authToken');
+  if (!q?.questionId || !token) {
+    alert('Sign in and use a course quiz to save questions.');
+    return;
+  }
+  const response = await fetch(`${API_BASE}/api/bookmarks`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', Authorization: `Bearer ${token}`},
+    body: JSON.stringify({ questionId: q.questionId })
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok && response.status !== 409) throw new Error(body.error || 'Question could not be saved');
+  alert(response.status === 409 ? 'Question is already saved.' : 'Question saved.');
 }
 
 const questionBank = {
@@ -262,6 +303,9 @@ let score=0;
 let timer;
 let timePerQuestion=30;
 let selectedAnswer='';
+let submittedAnswers=[];
+let answered=false;
+let quizSubmitted=false;
 let progressData=[];
 const quizSection=document.getElementById('quizSection');
 const questionContainer=document.getElementById('questionContainer');
@@ -290,6 +334,34 @@ document.getElementById('startManualBtn').onclick=()=>{
   startQuiz();
 };
 
+const retryQuiz = sessionStorage.getItem('retryQuiz');
+if (retryQuiz) {
+  try {
+    const retryQuestions = JSON.parse(retryQuiz);
+    sessionStorage.removeItem('retryQuiz');
+    if (Array.isArray(retryQuestions) && retryQuestions.length) {
+      currentQuiz = retryQuestions;
+      startQuiz();
+    }
+  } catch (error) {
+    sessionStorage.removeItem('retryQuiz');
+  }
+}
+
+if (new URLSearchParams(location.search).get('bookmarked') === '1') {
+  const savedToken = localStorage.getItem('authToken');
+  if (savedToken) {
+    fetch(`${API_BASE}/api/bookmarks/practice`, {headers:{Authorization:`Bearer ${savedToken}`}})
+      .then(response => response.ok ? response.json() : Promise.reject(new Error('Saved questions could not be loaded')))
+      .then(savedQuestions => {
+        if (!savedQuestions.length) return alert('Save at least one question before starting practice.');
+        currentQuiz = savedQuestions.map(question => ({...question, type: 'mcq'}));
+        startQuiz();
+      })
+      .catch(error => alert(error.message));
+  }
+}
+
 document.getElementById('startCourseBtn').onclick = async () => {
   const course = document.getElementById('courseSelect').value;
   const count = Math.max(1, Math.min(10, parseInt(document.getElementById('questionCount').value) || 5));
@@ -297,15 +369,21 @@ document.getElementById('startCourseBtn').onclick = async () => {
   try {
     const serverQs = await fetchQuestionsFromServer(course, count);
     if (!serverQs || serverQs.length === 0) {
-      alert('No questions available for this course.');
-      return;
+      const localQs = (questionBank[course] || []).slice(0, count);
+      if (!localQs.length) {
+        alert('No questions are available for this course yet.');
+        return;
+      }
+      currentQuiz = localQs;
+    } else {
+      currentQuiz = serverQs.map(q => ({
+        questionId: q.questionId,
+        type: q.type || 'mcq',
+        question: q.question,
+        options: q.options || q.choices || [],
+        answer: q.answer
+      }));
     }
-    currentQuiz = serverQs.map(q => ({
-      type: q.type || 'mcq',
-      question: q.question,
-      options: q.options || q.choices || [],
-      answer: q.answer
-    }));
     startQuiz();
   } catch (err) {
     alert('Could not load quiz: ' + err.message);
@@ -319,15 +397,21 @@ function startQuiz(){
   document.querySelector('.container').style.display='none';
   quizSection.style.display='block';
   quizResult.style.display='none';
-  currentIndex=0;score=0;showQuestion();
+  currentIndex=0;score=0;submittedAnswers=[];quizSubmitted=false;showQuestion();
 }
 function showQuestion(){
   clearInterval(timer);
   selectedAnswer='';
+  answered=false;
   nextBtn.style.display='none';
   const q=currentQuiz[currentIndex];
   questionContainer.textContent=q.question;
   optionsContainer.innerHTML='';
+  const bookmarkBtn = document.createElement('button');
+  bookmarkBtn.type = 'button';
+  bookmarkBtn.textContent = '🔖 Save question';
+  bookmarkBtn.onclick = () => bookmarkCurrentQuestion().catch(error => alert(error.message));
+  optionsContainer.appendChild(bookmarkBtn);
   if(q.type==='mcq'){
     q.options.forEach(opt=>{
       const btn=document.createElement('button');
@@ -368,25 +452,32 @@ function selectAnswer(opt,btn){
   checkAnswer();
 }
 function checkAnswer(){
+  if (answered) return;
+  answered=true;
   const q=currentQuiz[currentIndex];
-  if((q.type==='mcq'||q.type==='tf')&&selectedAnswer===q.answer)score++;
-  if(q.type==='fill'&&selectedAnswer.trim().toLowerCase()===q.answer.toLowerCase())score++;
+  submittedAnswers[currentIndex] = selectedAnswer;
+  if ((q.type === 'mcq' || q.type === 'tf') && q.answer && selectedAnswer === q.answer) score++;
+  if (q.type === 'fill' && q.answer && selectedAnswer.trim().toLowerCase() === q.answer.toLowerCase()) score++;
   nextBtn.style.display='block';
 }
 
 function showResult(){
+  if (quizSubmitted) return;
+  quizSubmitted=true;
+  clearInterval(timer);
   quizResult.style.display='block';
-  scoreDisplay.textContent = score;
   const total = currentQuiz.length || 0;
-  const percent = total ? Math.round((score / total) * 100) : 0;
-  const local = JSON.parse(localStorage.getItem('quizScores') || '[]');
-  local.push(percent);
-  localStorage.setItem('quizScores', JSON.stringify(local));
-  try {
-    const profile = JSON.parse(localStorage.getItem('profile') || '{}');
-    const userId = profile.email || null;
-    postAttemptToServer(userId, document.getElementById('courseSelect')?.value || 'Manual', score, total);
-  } catch(e) { console.warn(e); }
+  const profile = JSON.parse(localStorage.getItem('profile') || '{}');
+  const userId = profile.id;
+  const course = currentQuiz[0]?.course || document.getElementById('courseSelect')?.value || 'Manual';
+  if (!userId || !localStorage.getItem('authToken') || currentQuiz.some(q => !q.questionId)) {
+    scoreDisplay.textContent = `${score}/${total} (sign in to save this attempt)`;
+  } else {
+    scoreDisplay.textContent = 'Saving result…';
+    postAttemptToServer(userId, course, currentQuiz, submittedAnswers)
+      .then(result => { scoreDisplay.textContent = `${result.score}/${result.total} (${result.percent}%)`; })
+      .catch(error => { scoreDisplay.textContent = `Could not save result: ${error.message}`; });
+  }
   progressData.push(score);
   chart.data.labels = progressData.map((_,i)=>'Attempt '+(i+1));
   chart.data.datasets[0].data = progressData;

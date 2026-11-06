@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>QuickQuiz - Home</title>
+    <title>AI-Powered Intelligent Quiz and Assessment System - Home</title>
     <style>
         body {
             font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
@@ -60,6 +60,7 @@
             font-size: 20px;
             font-weight: 700;
             color: #4f46e5;
+            line-height: 1.2;
         }
 
         .desktop-nav {
@@ -106,6 +107,37 @@
 
         .btn-primary:hover {
             background-color: #4338ca;
+        }
+
+        @media (max-width: 1100px) and (min-width: 640px) {
+            .nav-flex {
+                height: auto;
+                flex-wrap: wrap;
+                row-gap: 8px;
+                padding-top: 8px;
+                padding-bottom: 8px;
+            }
+
+            .nav-items {
+                flex: 1 0 100%;
+                justify-content: center;
+            }
+
+            .logo-text {
+                font-size: 16px;
+                text-align: center;
+            }
+
+            .desktop-nav {
+                flex: 1 1 auto;
+                justify-content: center;
+                margin-left: 0;
+                gap: 20px;
+            }
+
+            .nav-flex-right {
+                margin-left: 0;
+            }
         }
 
         .hero-section {
@@ -336,8 +368,8 @@
             <div class="nav-flex">
                 <div class="nav-items">
                     <div class="logo-container">
-                        <img class="logo-icon" src="pictures/v1008-02.jpg" alt="Quick Quiz logo" />
-                        <span class="logo-text">Quick Quiz</span>
+                        <img class="logo-icon" src="pictures/v1008-02.jpg" alt="AI-Powered Intelligent Quiz and Assessment System logo" />
+                        <span class="logo-text">AI-Powered Intelligent Quiz and Assessment System</span>
                     </div>
                 </div>
                 <div class="desktop-nav">
@@ -348,7 +380,12 @@
                 </div>
                 <div class="nav-flex-right">
                     <a href="dashboard.html" class="nav-link">Dashboard</a>
-                    <button class="btn-primary">Sign In</button>
+                    <a href="insights.html" class="nav-link">Smart Insights</a>
+                    <a href="saved.html" class="nav-link">Saved Questions</a>
+                    <a href="challenge.html" class="nav-link">Daily Challenge</a>
+                    <a href="review.html" class="nav-link">Quiz Review</a>
+                    <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+                    <button class="btn-primary" type="button" onclick="window.location.href='login.html'">Sign In</button>
                 </div>
             </div>
         </div>
@@ -360,7 +397,7 @@
                 <div class="hero-text-content">
                     <h1>
                         <span class="block">Test Your Knowledge</span>
-                        <span class="block indigo-text">With QuickQuiz</span>
+                        <span class="block indigo-text">With AI-Powered Intelligent Quiz and Assessment System</span>
                     </h1>
                     <p class="hero-description">
                         Create, share, and take interactive quizzes on any topic. Join thousands of users expanding their knowledge daily.
@@ -380,7 +417,7 @@
             <div class="review-card">
                 <img src="pictures/cf21b18f1433bc14e4bcbef2357feb99.jpg" alt="User profile photo" class="review-image" />
                 <div class="review-stars">★★★★★</div>
-                <p clas`s="review-text">"QuickQuiz is an amazing tool for my daily study routine. The quizzes are well-structured and help me revise complex topics effortlessly. It's truly a game-changer!"</p>
+                <p clas`s="review-text">"AI-Powered Intelligent Quiz and Assessment System is an amazing tool for my daily study routine. The quizzes are well-structured and help me revise complex topics effortlessly. It's truly a game-changer!"</p>
                 <div class="reviewer-name">- Priya Sharma</div>
             </div>
             <div class="review-card">
@@ -401,7 +438,7 @@
     <div class="footer-wrapper">
         <div class="motive-wrapper">
             <div class="motive-section footer-section">
-                <h3>What We Want to Achieve with QuickQuiz</h3>
+                <h3>What We Want to Achieve with AI-Powered Intelligent Quiz and Assessment System</h3>
                 <p>Our mission is to make learning accessible and engaging for everyone. We believe that quizzes are a powerful tool for reinforcing knowledge and identifying areas for improvement. By providing a platform for users to create and share their own quizzes, we hope to foster a global community of learners who can teach and test each other, making education a collaborative and enjoyable experience for all.</p>
             </div>
         </div>
@@ -419,7 +456,7 @@
     </div>
 
     <div class="footer-copyright">
-        © 2024 QuickQuiz. All rights reserved.
+        © 2024 AI-Powered Intelligent Quiz and Assessment System. All rights reserved.
     </div>
 </body>
 </html>

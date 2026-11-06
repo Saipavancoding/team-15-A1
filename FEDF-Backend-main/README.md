@@ -1,20 +1,30 @@
-<<<<<<< HEAD
-QuickQuiz backend
------------------
+# QuickQuiz backend
 
-1. Copy .env.example to .env and set MONGO_URI.
-2. Place your questions.json and projects.json (arrays of documents) into this folder if you want to seed.
-3. Install dependencies:
-   npm install
-4. To seed the DB (optional):
-   node seed.js
-5. Start server:
-   node server.js
-6. API endpoints:
-   GET  /api/questions?course=HTML&limit=10
-   GET  /api/projects?q=search&course=HTML
-   POST /api/attempts  { userId, course, score, total }
-   GET  /api/attempts/:userId
-=======
-# FEDF-Backend
->>>>>>> ec371cbd0300b5b7dc73d9d8145a10e9e9ab1d0f
+## Run locally
+
+```powershell
+npm install
+npm start
+```
+
+The server serves the frontend on port `4000` by default. Configure `PORT`, `JWT_SECRET`, and `MONGO_URI` in `.env` as needed.
+
+## Seed quiz data into Neon
+
+The repository question bank contains 300 questions across six courses. Pull Neon variables into the repository root, then run:
+
+```powershell
+neon env pull
+npm run seed:neon
+```
+
+`seed:neon` uses `DATABASE_URL_UNPOOLED` for the schema/write operation, creates `quiz_questions` and its indexes, and safely upserts the contents of `questions.json`.
+
+The application reads the seeded Neon question bank when `DATABASE_URL` is configured. Verify the connection with:
+
+```text
+GET /api/neon/health
+GET /api/questions?course=HTML&limit=10
+```
+
+The existing Mongoose collections remain available for the application’s current user, attempt, bookmark, challenge, reward, and feature records.

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - Quick Quiz</title>
+    <title>Register - AI-Powered Intelligent Quiz and Assessment System</title>
     <style>
         body {
             font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
@@ -230,34 +230,31 @@
             studentForm.classList.add('hidden');
         });
 
-        document.getElementById("studentRegisterForm").addEventListener("submit", function(e) {
-            e.preventDefault();
-            
-            const password = e.target.querySelector('input[placeholder="Password"]').value;
-            const confirmPassword = e.target.querySelector('input[placeholder="Confirm Password"]').value;
-            
-            if (password !== confirmPassword) {
-                alert("Passwords do not match!");
-                return;
+        async function register(form, role) {
+            const inputs = form.querySelectorAll('input');
+            const passwords = Array.from(form.querySelectorAll('input[type="password"]'));
+            if (passwords[0].value !== passwords[1].value) {
+                throw new Error("Passwords do not match!");
             }
-            
-            alert("Student registration successful! Redirecting to Home...");
-            window.location.href = "indexx.html";
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: inputs[0].value, email: inputs[1].value, password: passwords[0].value, role})
+            });
+            const body = await response.json();
+            if (!response.ok) throw new Error(body.error || 'Registration failed');
+            localStorage.setItem('authToken', body.token);
+            localStorage.setItem('profile', JSON.stringify(body.user));
+            window.location.href = 'dashboard.html';
+        }
+        document.getElementById("studentRegisterForm").addEventListener("submit", async function(e) {
+            e.preventDefault();
+            try { await register(e.target, 'student'); } catch (error) { alert(error.message); }
         });
 
-        document.getElementById("teacherRegisterForm").addEventListener("submit", function(e) {
+        document.getElementById("teacherRegisterForm").addEventListener("submit", async function(e) {
             e.preventDefault();
-            
-            const password = e.target.querySelector('input[placeholder="Password"]').value;
-            const confirmPassword = e.target.querySelector('input[placeholder="Confirm Password"]').value;
-            
-            if (password !== confirmPassword) {
-                alert("Passwords do not match!");
-                return;
-            }
-            
-            alert("Teacher registration successful! Redirecting to Home...");
-            window.location.href = "indexx.html";
+            try { await register(e.target, 'teacher'); } catch (error) { alert(error.message); }
         });
     </script>
 </body>

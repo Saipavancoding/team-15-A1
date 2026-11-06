@@ -7,9 +7,15 @@ node_modules/
 # Runtime
 *.log
 attempts.json
+users.json
+bookmarks.json
+challenge-attempts.json
+rewards.json
+.jwt-secret
 
 # Editor
 .vscode/
+.idea/
 *.suo
 *.user
 *.userosscache
@@ -21,3 +27,5 @@ Thumbs.db
 
 # Ignore AppData cruft if accidentally added
 AppData/
+.neon
+.env.local

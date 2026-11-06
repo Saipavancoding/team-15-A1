@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Quick Quiz</title>
+    <title>Login - AI-Powered Intelligent Quiz and Assessment System</title>
     <style>
         body {
             font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
@@ -119,6 +119,12 @@ background: url("pictures/close-up-puzzle-background_23-2149289227 (1).jpg") no-
         .login-link:hover {
             text-decoration: underline;
         }
+        .login-error {
+            min-height: 22px;
+            margin: 12px 0 0;
+            color: #b91c1c;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -144,6 +150,7 @@ background: url("pictures/close-up-puzzle-background_23-2149289227 (1).jpg") no-
                 </div>
                 <button type="submit" class="submit-btn">Login as Student</button>
                 <button type="button" onclick="window.location.href='indexx.html'" class="home-btn">Home</button>
+                <p class="login-error" aria-live="polite"></p>
             </form>
         </div>
 
@@ -157,6 +164,7 @@ background: url("pictures/close-up-puzzle-background_23-2149289227 (1).jpg") no-
                 </div>
                 <button type="submit" class="submit-btn">Login as Teacher</button>
                 <button type="button" onclick="window.location.href='indexx.html'" class="home-btn">Home</button>
+                <p class="login-error" aria-live="polite"></p>
             </form>
         </div>
 
@@ -185,16 +193,43 @@ background: url("pictures/close-up-puzzle-background_23-2149289227 (1).jpg") no-
             studentForm.classList.add('hidden');
         });
 
-        document.getElementById("studentLoginForm").addEventListener("submit", function(e) {
+        async function login(form, role) {
+            const inputs = form.querySelectorAll('input');
+            const email = inputs[0].value.trim().toLowerCase();
+            const password = inputs[1].value;
+            if (!email || !password) throw new Error('Enter your email and password.');
+            let response;
+            try {
+                response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email, password})
+                });
+            } catch (error) {
+                throw new Error('Unable to reach the server. Please start QuickQuiz and try again.');
+            }
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(body.error || `Login failed (${response.status})`);
+            if (body.user.role !== role) throw new Error(`This account is registered as a ${body.user.role}`);
+            localStorage.setItem('authToken', body.token);
+            localStorage.setItem('profile', JSON.stringify(body.user));
+            window.location.href = 'dashboard.html';
+        }
+        document.getElementById("studentLoginForm").addEventListener("submit", async function(e) {
             e.preventDefault();
-            alert("Student login successful! Redirecting to Home...");
-            window.location.href = "indexx.html";
+            const button = e.target.querySelector('button[type="submit"]');
+            const errorElement = e.target.querySelector('.login-error');
+            button.disabled = true;
+            errorElement.textContent = '';
+            try { await login(e.target, 'student'); } catch (error) { errorElement.textContent = error.message; } finally { button.disabled = false; }
         });
-
-        document.getElementById("teacherLoginForm").addEventListener("submit", function(e) {
+        document.getElementById("teacherLoginForm").addEventListener("submit", async function(e) {
             e.preventDefault();
-            alert("Teacher login successful! Redirecting to Home...");
-            window.location.href = "indexx.html";
+            const button = e.target.querySelector('button[type="submit"]');
+            const errorElement = e.target.querySelector('.login-error');
+            button.disabled = true;
+            errorElement.textContent = '';
+            try { await login(e.target, 'teacher'); } catch (error) { errorElement.textContent = error.message; } finally { button.disabled = false; }
         });
     </script>
 </body>

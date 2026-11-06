@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard - Quick Quiz</title>
+  <title>Dashboard - AI-Powered Intelligent Quiz and Assessment System</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -121,14 +121,24 @@
   <nav>
     <div class="logo">
       <span class="icon">⚡</span>
-      <span>Quick Quiz</span>
+      <span>AI-Powered Intelligent Quiz and Assessment System</span>
     </div>
     <div class="links">
       <a href="indexx.html">Home</a>
       <a href="courses.html">Courses</a>
-      <a href="quiz.html">Quizzes</a>
+      <a href="quizz.html">Quizzes</a>
       <a href="projects.html">Projects</a>
       <a href="dashboard.html" class="active">Dashboard</a>
+      <a href="insights.html">Smart Insights</a>
+      <a href="saved.html">Saved Questions</a>
+      <a href="challenge.html">Daily Challenge</a>
+      <a href="review.html">Quiz Review</a>
+      <a href="leaderboard.html">Leaderboard</a>
+      <a href="planner.html">Study Planner</a>
+      <a href="flashcards.html">Flashcards</a>
+      <a href="mock-exams.html">Mock Exams</a>
+      <a href="forum.html">Discussion Forum</a>
+      <a href="certificates.html">Certificates</a>
       <button id="authBtn">Sign In</button>
     </div>
   </nav>
@@ -145,7 +155,16 @@
 
     <div>
       <h2>Your Quiz Progress</h2>
+      <div id="stats" aria-live="polite">Loading your real quiz statistics…</div>
       <canvas id="progressChart"></canvas>
+      <h2>Achievements</h2>
+      <div id="achievements"></div>
+      <h2>Learning Roadmap</h2>
+      <div id="roadmap"></div>
+      <h2>Challenges</h2>
+      <div id="challenges"></div>
+      <h2>Mistake Analyzer</h2>
+      <div id="mistakes"></div>
     </div>
   </div>
 
@@ -169,18 +188,22 @@
     }
 
     function saveProfile() {
-      const profile = {
-        name: nameInput.value,
-        email: emailInput.value,
-      };
+      const profile = JSON.parse(localStorage.getItem("profile") || "{}");
+      const name = nameInput.value.trim();
+      if (!name) {
+        alert("Name is required.");
+        return;
+      }
+      profile.name = name;
       localStorage.setItem("profile", JSON.stringify(profile));
       loadProfile();
-      alert("Profile updated!");
+      alert("Profile updated.");
     }
 
     authBtn.addEventListener("click", () => {
       if (authBtn.textContent === "Log Out") {
         localStorage.removeItem("profile");
+        localStorage.removeItem("authToken");
         loadProfile();
       } else {
         window.location.href = "login.html";
@@ -189,16 +212,14 @@
 
     loadProfile();
 
-    let quizScores = JSON.parse(localStorage.getItem("quizScores")) || [60, 75, 90];
-
     const ctx = document.getElementById("progressChart").getContext("2d");
-    new Chart(ctx, {
+    const chart = new Chart(ctx, {
       type: "line",
       data: {
-        labels: quizScores.map((_, i) => `Attempt ${i+1}`),
+        labels: [],
         datasets: [{
           label: "Score (%)",
-          data: quizScores,
+          data: [],
           borderColor: "#4f46e5",
           backgroundColor: "rgba(79, 70, 229, 0.2)",
           borderWidth: 2,
@@ -212,6 +233,43 @@
           y: { beginAtZero: true, max: 100 }
         }
       }
+    });
+
+    async function loadDashboard() {
+      const profile = JSON.parse(localStorage.getItem("profile") || "{}");
+      const token = localStorage.getItem("authToken");
+      if (!profile.id || !token) {
+        document.getElementById("stats").textContent = "Sign in to see your progress.";
+        return;
+      }
+      const response = await fetch("/api/dashboard", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!response.ok) throw new Error("Dashboard data could not be loaded");
+      const data = await response.json();
+      const stats = data.stats;
+      document.getElementById("stats").textContent =
+        `${stats.totalAttempts} attempts · ${stats.averagePercent}% average · ${stats.bestPercent}% best · ${stats.streak}-day streak`;
+      chart.data.labels = data.attempts.map((_, i) => `Attempt ${i + 1}`);
+      chart.data.datasets[0].data = data.attempts.map(attempt => attempt.percent);
+      chart.update();
+      document.getElementById("achievements").innerHTML = data.achievements
+        .map(item => `<p>${item.unlocked ? "🏆" : "🔒"} ${item.title}${item.unlocked ? "" : " (locked)"}</p>`).join("");
+      document.getElementById("roadmap").innerHTML = data.roadmap.length
+        ? data.roadmap.map(item => `<p><strong>${item.order}. ${item.title}</strong> — ${item.status}</p>`).join("")
+        : "<p>Complete a quiz to build your personalized roadmap.</p>";
+      const challengesResponse = await fetch("/api/challenges");
+      if (!challengesResponse.ok) throw new Error("Challenges could not be loaded");
+      const challenges = await challengesResponse.json();
+      document.getElementById("challenges").innerHTML = challenges
+        .map(item => `<p><strong>${item.title}</strong> — ${item.description}</p>`).join("");
+      document.getElementById("mistakes").innerHTML = data.mistakes.length
+        ? data.mistakes.map(item => `<p>Question ${item.questionId}: missed ${item.count} time(s)</p>`).join("")
+        : "<p>No mistakes recorded yet. Keep practicing.</p>";
+    }
+
+    loadDashboard().catch(error => {
+      document.getElementById("stats").textContent = error.message;
     });
   </script>
 </body>

@@ -1,0 +1,12 @@
+{
+  "name": "quickquiz-neon-deployment",
+  "private": true,
+  "scripts": {
+    "build": "node --check FEDF-Backend-main/server.js",
+    "test": "node --check FEDF-Backend-main/server.js"
+  },
+  "dependencies": {
+    "@neon/config": "^1.11.3",
+    "@neon/env": "^1.6.15"
+  }
+}
